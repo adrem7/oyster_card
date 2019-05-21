@@ -10,7 +10,6 @@ class Oystercard
     @balance = balance
     @limit = LIMIT
     @journey_history = []
-    @journey_entry = nil
   end
 
   def top_up(amount)
