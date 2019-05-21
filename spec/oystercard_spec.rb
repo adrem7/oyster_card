@@ -1,15 +1,18 @@
 require 'oystercard'
 
 describe Oystercard do
-  let(:station_in) { double(:station) }
+  let(:station_in)  { double(:station) }
   let(:station_out) { double(:station) }
+  let(:journey)     { double(:journey, :minimum_fare => 1, :penalty_fare => 6) }
 
   it 'has a balance of 0 as default' do
     expect(subject.balance).to eq(0)
   end
 
   it 'should initialize with in_journey false' do
-    expect(subject.in_journey?).to eq(false)
+    subject.top_up(subject.limit)
+    subject.touch_in(station_in)
+    expect(subject.in_journey?).to eq(true)
   end
 
   it 'should throw insufficient balance error where applicable' do
@@ -26,22 +29,25 @@ describe Oystercard do
     before(:each) { subject.touch_in(station_in) }
 
     it 'should charge people for their journey' do
-      expect {subject.touch_out(station_out)}.to change{subject.balance}.by(-Oystercard::MINIMUM_FARE)
+      expect {subject.touch_out(station_out)}.to change{subject.balance}.by(-journey.minimum_fare)
     end
 
     it 'should change in_journey to false when touch_out' do
       subject.touch_out(station_out)
       expect(subject).not_to be_in_journey
     end
+  end
 
-    it 'should forget the entry station on touch_out' do
-      subject.touch_out(station_out)
-      expect(subject.journey_entry).to be_nil
-    end
+  it 'should charge a penalty if there is no touch_out' do
+    subject.top_up(subject.limit)
+    subject.touch_in("Bob")
+    subject.touch_in("Suzy")
+    expect(subject.balance).to eq(subject.limit - journey.penalty_fare)
+  end
 
-    it 'should store each journey as a hash in my history' do
-      subject.touch_out(station_out)
-      expect(subject.journey_history).to eq([{:entry => station_in, :exit => station_out}])
-    end
+  it 'should charge a penalty if there is no touch_in' do
+    subject.top_up(subject.limit)
+    subject.touch_out("Bob")
+    expect(subject.balance).to eq(subject.limit - journey.penalty_fare)
   end
 end
